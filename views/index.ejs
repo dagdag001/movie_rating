@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Beacon</title>
+    <link rel="stylesheet" href="/styles/layout.css">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .content {
+            flex: 1;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <%- include("partials/header.ejs") %>
+
+    <div class="content">
+
+        <section class="d-flex flex-column justify-content-center align-items-center text-center bg-dark text-light">
+            <div class="px-4 pt-5 my-5">
+                <h1 class="display-4 fw-bold">Your Ultimate Movie Rating Platform</h1>
+            </div>
+        </section>
+
+      
+
+        <section>
+          <div class="container ">
+              <div class="row d-flex justify-content-center ">
+              <div class="col-md-12 col-lg-10 col-xl-8 ">
+                  
+                  <div class="card " style="border: none; outline: none;">
+                  
+                      <div class = "shadow-lg mb-2 ">
+                        <textarea class="form-control bg-dark bg-gradient text-body-secondary " id="title-input" rows="1" style="border: none; outline: none; ">Movie Name</textarea>
+                      </div>
+                      
+                  <div class = "shadow-lg mb-2 ">
+                      <textarea class="form-control bg-dark  bg-gradient text-body-secondary" id="review-input" rows="5" style="border: none; outline: none;">What do you think of the Movie....</textarea>
+                      </div>
+                      <div class="d-flex align-items-center">
+                      </div>
+                      </div>
+                      <div class="float-end mt-2 pt-1">
+                      <button  action="submit" type="button" data-mdb-button-init data-mdb-ripple-init class="btn  btn-sm " style="background-color: khaki;  color: #111111;text-shadow: 0.4px 0.3px grey;" id ="postBlogBtn">Post Review</button>
+                      <button  type="button" data-mdb-button-init data-mdb-ripple-init class="btn btn-sm" style="background-color: silver; color: #11111180;text-shadow: 0.7px 0.3px grey;" id = "cancelBtn">Cancel</button>
+                      </div>
+                  </div>
+                  </div>
+              </div>
+              </div>
+          </div>
+          </section>    
+
+
+        <section>
+            <ul class="list-group list-group-light">
+                <% blogPosts.forEach((post) => { %>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-5">
+                        <a href="/post/<%= post.id %>" class="w-100 text-decoration-none" style="color: silver;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5><%= post.title.toUpperCase() %></h5>
+                                    <p class="text-muted mb-0">
+                                        <%= post.blog.length > 100 ? post.blog.substring(0, 100) + "..." : post.blog %>
+                                    </p>
+                                </div>
+                               
+                            </div>
+                        </a>
+                        <button class="btn btn-danger btn-sm delete-btn" data-id="<%= post.id %>" aria-label="Delete post">
+                          <img src="/images/trash.svg" alt="Delete" width="16" height="16">
+                      </button>
+                    </li>
+                <% }); %>
+            </ul>
+        </section>
+    </div>
+
+    <%- include("partials/footer.ejs") %>
+
+    <script>
+        function setupPlaceholder(id, placeholderText) {
+            let textArea = document.getElementById(id);
+
+            textArea.addEventListener("focus", () => {
+                if (textArea.value === placeholderText) {
+                    textArea.value = "";
+                }
+            });
+
+            textArea.addEventListener("blur", () => {
+                if (textArea.value.trim() === "") {
+                    textArea.value = placeholderText;
+                }
+            });
+        }
+
+        setupPlaceholder("title-input", "Movie Name");
+        setupPlaceholder("review-input", "What do you think of the Movie....");
+
+        document.getElementById("cancelBtn").addEventListener("click", () => {
+            document.getElementById("title-input").value = "Movie Name";
+            document.getElementById("review-input").value = "What do you think of the Movie....";
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            let postBlogBtn = document.getElementById("postBlogBtn");
+
+            postBlogBtn.addEventListener("click", async () => {
+                let title = document.getElementById("title-input").value.trim();
+                let blog = document.getElementById("review-input").value.trim();
+
+                if (!title || !blog || title === "Movie Name" || blog === "What do you think of the Movie....") {
+                    alert("Please enter a valid title and blog content.");
+                    return;
+                }
+
+                try {
+                    let response = await fetch("/submit", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ title, blog })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Failed to submit blog");
+                    }
+
+                    let result = await response.json();
+                    console.log("Blog submitted!", result);
+
+                    let blogList = document.querySelector(".list-group");
+                    let newBlogItem = document.createElement("li");
+                    newBlogItem.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center", "px-5");
+
+                    newBlogItem.innerHTML = `
+                        <div>
+                            <a href="/post/${result.newPost.id}" class="w-100 text-decoration-none" style="color: silver;">
+                               <h5> ${result.newPost.title.toUpperCase()} </h5>
+                            </a>
+                            <p class="text-muted mb-0">
+                                ${result.newPost.blog.length > 100
+                                    ? result.newPost.blog.substring(0, 100) + "..."
+                                    : result.newPost.blog}
+                            </p>
+                        </div>
+                        <button class="btn btn-danger btn-sm delete-btn" data-id="${result.newPost.id}" aria-label="Delete post">
+                            <img src="/images/trash.svg" alt="Delete" width="16" height="16">
+                        </button>
+                    `;
+
+                    blogList.appendChild(newBlogItem);
+
+                    document.getElementById("title-input").value = "Movie Name";
+                    document.getElementById("review-input").value = "What do you think of the Movie....";
+
+                } catch (error) {
+                    console.error("Error submitting blog:", error);
+                    alert("An error occurred while submitting the blog. Please try again.");
+                }
+            });
+        });
+
+        document.addEventListener("click", async (event) => {
+            if (event.target.closest(".delete-btn")) {
+                let deleteButton = event.target.closest(".delete-btn");
+                let postId = deleteButton.dataset.id;
+
+                try {
+                    let response = await fetch(`/delete/${postId}`, { method: "DELETE" });
+
+                    if (!response.ok) {
+                        throw new Error("Failed to delete post");
+                    }
+
+                    let listItem = deleteButton.closest("li");
+                    if (listItem) listItem.remove();
+                } catch (error) {
+                    console.error("Error:", error);
+                    alert("An error occurred while deleting the post. Please try again.");
+                }
+            }
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+</body>
+</html>
